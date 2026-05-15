@@ -371,9 +371,16 @@ ctx.close()  # profile saved
 
 # Next run — cookies, localStorage restored automatically
 ctx = launch_persistent_context("./my-profile", headless=False)
+
+# Load Chrome extensions
+ctx = launch_persistent_context(
+    "./my-profile",
+    headless=False,
+    extension_paths=["./my-extension"],
+)
 ```
 
-Supports all the same options as `launch_context()`: `proxy`, `user_agent`, `viewport`, `locale`, `timezone`, `color_scheme`, `geoip`.
+Supports all the same options as `launch_context()`: `proxy`, `user_agent`, `viewport`, `locale`, `timezone`, `color_scheme`, `geoip`, `extension_paths`.
 
 Async version: `launch_persistent_context_async()`.
 
@@ -1196,4 +1203,9 @@ Issues and PRs welcome. If something isn't working, [open an issue](https://gith
 - [@eofreternal](https://github.com/eofreternal) — humanConfig type fix, humanized method option types
 - [@manaskarra](https://github.com/manaskarra) — iframe scope fix for humanized frame actions, GeoIP timeout guard
 - [@Youhai020616](https://github.com/Youhai020616) — SOCKS5 credential encoding logging
-- [@AlexTech314](https://github.com/AlexTech314) — AWS Lambda integration
+- [@AlexTech314](https://github.com/AlexTech314) — AWS Lambda integration, cold-start hardening
+- [@dgtlmoon](https://github.com/dgtlmoon) — graceful pw.stop() cleanup
+- [@zackycodes](https://github.com/zackycodes) — Chrome extension loading
+- [@aaronjmars](https://github.com/aaronjmars) — security fixes (shell injection, dep bumps)
+- [@Seryiza](https://github.com/Seryiza) — Nix/NixOS flake
+- [@245678000000](https://github.com/245678000000) — package-lock sync

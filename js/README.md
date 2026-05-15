@@ -230,6 +230,13 @@ const ctx = await launchPersistentContext({
   userDataDir: './my-profile',
   headless: false,
 });
+
+// Load Chrome extensions
+const ctx = await launchPersistentContext({
+  userDataDir: './my-profile',
+  headless: false,
+  extensionPaths: ['./my-extension'],
+});
 ```
 
 This also gives you cookie and localStorage persistence across sessions.

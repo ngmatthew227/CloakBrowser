@@ -1,3 +1,4 @@
+import { test, expect } from "vitest";
 import path from "path";
 import { _buildArgsForTest } from "../src/playwright.js";
 
