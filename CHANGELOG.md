@@ -8,6 +8,19 @@ Changes are tagged: **[wrapper]** for Python/JS wrapper, **[binary]** for Chromi
 
 ## [Unreleased]
 
+## [0.3.29] — 2026-05-20
+
+- **[wrapper]** **Security**: `cloakserve` — guard WebSocket origins to prevent browser-origin CSRF via CDP proxy (thanks [@0xlally](https://github.com/0xlally) for the report, [@honor2030](https://github.com/honor2030) for the fix, #239, #240)
+- **[wrapper]** **Security**: Lambda example — add URL scheme validation, SSRF protection, post-navigation re-validation, remove unsafe caller-controlled options (#233)
+- **[wrapper]** **Security**: CI — isolate `workflow_dispatch` input to avoid shell injection in attest-release (thanks [@aaronjmars](https://github.com/aaronjmars), #223)
+- **[wrapper]** **Security**: JS — bump tar + transitive deps via npm audit fix (thanks [@aaronjmars](https://github.com/aaronjmars), #222)
+- **[wrapper]** Add `extension_paths` parameter for loading Chrome extensions in all launch functions (thanks [@zackycodes](https://github.com/zackycodes), #210)
+- **[wrapper]** Humanize: add Playwright-style actionability checks — auto-wait for visible, enabled, stable elements before humanized actions (#228)
+- **[wrapper]** JS: export composable launch helpers — `buildLaunchOptions()` and `humanizeBrowser()` for custom Playwright integrations (thanks [@honor2030](https://github.com/honor2030), #244)
+- **[wrapper]** JS: add `launchPersistentContext()` to Puppeteer wrapper (#261)
+- **[wrapper]** Add `flake.nix` for Nix/NixOS (thanks [@Seryiza](https://github.com/Seryiza), #220)
+- **[meta]** JS: sync package-lock metadata (thanks [@245678000000](https://github.com/245678000000), #219)
+
 ## [0.3.28] — 2026-05-11
 
 - **[wrapper]** **Security**: `cloakserve` — sanitize fingerprint seed to prevent path traversal, bind to `127.0.0.1` on bare metal, detect Podman containers (#217)

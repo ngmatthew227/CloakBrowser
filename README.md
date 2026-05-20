@@ -128,7 +128,7 @@ Open [http://localhost:8080](http://localhost:8080). Create a profile. Click **L
 
 ---
 
-## Latest: v0.3.28 (Chromium 146.0.7680.177.4)
+## Latest: v0.3.29 (Chromium 146.0.7680.177.4)
 
 - **`launch_context_async()`** — async counterpart to `launch_context()`. Forwards kwargs to `browser.new_context()` for `storage_state`, `permissions`, `extra_http_headers` without a persistent profile folder.
 - **JS `contextOptions` escape hatch** — forward arbitrary options (including `storageState`) to Playwright's `newContext()` from `launchContext()` / `launchPersistentContext()`.
@@ -1209,3 +1209,5 @@ Issues and PRs welcome. If something isn't working, [open an issue](https://gith
 - [@aaronjmars](https://github.com/aaronjmars) — security fixes (shell injection, dep bumps)
 - [@Seryiza](https://github.com/Seryiza) — Nix/NixOS flake
 - [@245678000000](https://github.com/245678000000) — package-lock sync
+- [@honor2030](https://github.com/honor2030) — cloakserve WebSocket origin guard, composable JS launch helpers
+- [@0xlally](https://github.com/0xlally) — security reports (cloakserve path traversal, WebSocket origin bypass)
