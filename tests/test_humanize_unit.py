@@ -1888,6 +1888,58 @@ class TestTimeoutBudget307:
         )
 
 
+class TestPointerEventsFailOpen:
+    """The pointer-events check must fail open: when it cannot run (evaluate /
+    bounding_box throws -> result None), proceed with the click instead of
+    blocking it until the timeout expires."""
+
+    def test_handle_failopen_returns_on_evaluate_error(self):
+        from cloakbrowser.human.actionability import check_pointer_events_handle
+        el = MagicMock()
+        el.bounding_box = MagicMock(side_effect=Exception("stale handle"))
+        el.evaluate = MagicMock(side_effect=Exception("execution context destroyed"))
+        start = time.monotonic()
+        check_pointer_events_handle(MagicMock(), el, 100, 100, timeout=2000)  # must not raise
+        elapsed_ms = (time.monotonic() - start) * 1000
+        assert elapsed_ms < 500, f"fail-open should return promptly, took {elapsed_ms:.0f}ms"
+
+    def test_locator_failopen_returns_on_evaluate_error(self):
+        from cloakbrowser.human.actionability import check_pointer_events
+        page = MagicMock()
+        loc = MagicMock()
+        loc.first = loc
+        loc.bounding_box = MagicMock(side_effect=Exception("no element"))
+        loc.evaluate = MagicMock(side_effect=Exception("no element"))
+        page.locator = MagicMock(return_value=loc)
+        start = time.monotonic()
+        check_pointer_events(page, "#x", 100, 100, timeout=2000)  # must not raise
+        elapsed_ms = (time.monotonic() - start) * 1000
+        assert elapsed_ms < 500, f"fail-open should return promptly, took {elapsed_ms:.0f}ms"
+
+    def test_handle_still_raises_when_covered(self):
+        """A genuine 'covered' result (not None) must still raise — fail-open
+        only applies when the check could not be determined."""
+        from cloakbrowser.human.actionability import (
+            check_pointer_events_handle, ElementNotReceivingEventsError,
+        )
+        el = MagicMock()
+        el.bounding_box = MagicMock(return_value={"x": 0, "y": 0, "width": 10, "height": 10})
+        el.evaluate = MagicMock(return_value={"hit": False, "covering": "DIV"})
+        with pytest.raises(ElementNotReceivingEventsError):
+            check_pointer_events_handle(MagicMock(), el, 5, 5, timeout=200)
+
+    def test_async_handle_failopen_returns_on_evaluate_error(self):
+        from cloakbrowser.human.actionability_async import async_check_pointer_events_handle
+        from unittest.mock import AsyncMock
+        el = MagicMock()
+        el.bounding_box = AsyncMock(side_effect=Exception("stale handle"))
+        el.evaluate = AsyncMock(side_effect=Exception("execution context destroyed"))
+        start = time.monotonic()
+        asyncio.run(async_check_pointer_events_handle(MagicMock(), el, 100, 100, timeout=2000))
+        elapsed_ms = (time.monotonic() - start) * 1000
+        assert elapsed_ms < 500, f"fail-open should return promptly, took {elapsed_ms:.0f}ms"
+
+
 # =========================================================================
 # Direct runner (backwards compat)
 # =========================================================================

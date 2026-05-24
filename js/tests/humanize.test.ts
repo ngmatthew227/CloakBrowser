@@ -1559,3 +1559,43 @@ describe("frame.click timeout budget (#307)", () => {
     expect(elapsed).toBeLessThan(TIMEOUT_MS * 1.8);
   });
 });
+
+describe("pointer-events check fail-open", () => {
+  // When the check itself cannot run (evaluate / boundingBox throws -> result
+  // null), proceed with the click instead of blocking it until the timeout.
+  it("checkPointerEventsHandle returns promptly when evaluate throws", async () => {
+    const { checkPointerEventsHandle } = await import("../src/human/actionability.js");
+    const el = {
+      boundingBox: vi.fn().mockRejectedValue(new Error("stale handle")),
+      evaluate: vi.fn().mockRejectedValue(new Error("execution context destroyed")),
+    };
+    const start = Date.now();
+    await checkPointerEventsHandle(el as any, 100, 100, 2000); // must not throw
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it("checkPointerEvents returns promptly when evaluate throws", async () => {
+    const { checkPointerEvents } = await import("../src/human/actionability.js");
+    const loc = {
+      first: () => loc,
+      boundingBox: vi.fn().mockRejectedValue(new Error("no element")),
+      evaluate: vi.fn().mockRejectedValue(new Error("no element")),
+    };
+    const page = { locator: vi.fn().mockReturnValue(loc) };
+    const start = Date.now();
+    await checkPointerEvents(page as any, "#x", 100, 100, null, 2000); // must not throw
+    expect(Date.now() - start).toBeLessThan(500);
+  });
+
+  it("checkPointerEventsHandle still throws when genuinely covered", async () => {
+    const { checkPointerEventsHandle, ElementNotReceivingEventsError } =
+      await import("../src/human/actionability.js");
+    const el = {
+      boundingBox: vi.fn().mockResolvedValue({ x: 0, y: 0, width: 10, height: 10 }),
+      evaluate: vi.fn().mockResolvedValue({ hit: false, covering: "DIV" }),
+    };
+    await expect(checkPointerEventsHandle(el as any, 5, 5, 200)).rejects.toBeInstanceOf(
+      ElementNotReceivingEventsError,
+    );
+  });
+});
