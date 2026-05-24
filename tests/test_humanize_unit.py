@@ -708,7 +708,7 @@ class TestBrowserBotDetection:
         time.sleep(0.3)
         page.locator('#password').fill('SecurePass!123')
         time.sleep(0.5)
-        page.locator('button[type="submit"]').click()
+        page.locator('#loginForm button[type="submit"]').click()
         time.sleep(5)
         body = page.locator('body').text_content()
         assert '"superHumanSpeed": true' not in body
@@ -725,7 +725,7 @@ class TestBrowserBotDetection:
         t0 = time.time()
         page.locator('#email').fill('test@example.com')
         page.locator('#password').fill('MyPassword!99')
-        page.locator('button[type="submit"]').click()
+        page.locator('#loginForm button[type="submit"]').click()
         elapsed_ms = int((time.time() - t0) * 1000)
         time.sleep(3)
         assert elapsed_ms > 3000
@@ -1826,6 +1826,66 @@ class TestScrollIntoViewIfNeeded:
         assert called["cfg"].scroll_overshoot_chance == 0.5
         # Cursor was updated from the helper's return value
         assert cursor.x == 200 and cursor.y == 200
+
+
+# =========================================================================
+# Issue #307: frame/page click timeout should not multiply
+# =========================================================================
+
+class TestTimeoutBudget307:
+    """Verify timeout budget is shared across sequential operations."""
+
+    def test_page_click_total_time_within_budget(self):
+        """page.click on a missing element should not exceed ~1x the timeout."""
+        import cloakbrowser.human as h
+        from cloakbrowser.human import _CursorState
+        from cloakbrowser.human.config import resolve_config
+        from unittest.mock import MagicMock, patch
+
+        TIMEOUT_MS = 500
+        cfg = resolve_config("default", {"idle_between_actions": False})
+        cursor = _CursorState()
+        cursor.initialized = True
+        cursor.x = 100
+        cursor.y = 100
+
+        page = MagicMock()
+        page.click = MagicMock()
+        page.dblclick = MagicMock()
+        page.hover = MagicMock()
+        page.type = MagicMock()
+        page.fill = MagicMock()
+        page.goto = MagicMock()
+        page.is_checked = MagicMock(return_value=False)
+        page.viewport_size = {"width": 1280, "height": 720}
+        page.evaluate = MagicMock(return_value={"hit": True})
+        page.context.new_cdp_session = MagicMock(side_effect=Exception("no cdp"))
+        page.mouse = MagicMock()
+        page.keyboard = MagicMock()
+        page.query_selector = MagicMock(return_value=None)
+        page.query_selector_all = MagicMock(return_value=[])
+        page.wait_for_selector = MagicMock(return_value=None)
+        page.main_frame = MagicMock()
+        page.main_frame.child_frames = []
+
+        loc = MagicMock()
+        loc.wait_for = MagicMock(side_effect=lambda **kw: time.sleep(kw.get("timeout", 30000) / 1000.0))
+        loc.is_visible = MagicMock(return_value=False)
+        loc.first = loc
+        page.locator = MagicMock(return_value=loc)
+
+        h.patch_page(page, cfg, cursor)
+
+        start = time.monotonic()
+        try:
+            page.click("#does-not-exist", timeout=TIMEOUT_MS)
+        except Exception:
+            pass
+        elapsed_ms = (time.monotonic() - start) * 1000
+
+        assert elapsed_ms < TIMEOUT_MS * 1.8, (
+            f"expected <{TIMEOUT_MS * 1.8}ms, got {elapsed_ms:.0f}ms"
+        )
 
 
 # =========================================================================

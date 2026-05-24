@@ -1479,3 +1479,83 @@ describe("el.scrollIntoViewIfNeeded humanization", () => {
     spy.mockRestore();
   });
 });
+
+
+// =========================================================================
+// Issue #307: frame.click timeout should not multiply
+// =========================================================================
+describe("frame.click timeout budget (#307)", () => {
+  it("total wait time should not exceed the specified timeout", async () => {
+    const { patchPage } = await import("../src/human/index.js");
+
+    const TIMEOUT_MS = 500;
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    // Build a frame where the element does NOT exist:
+    // scrollIntoViewIfNeeded and boundingBox each wait until their
+    // individual timeout before failing, and origFrameClick does the same.
+    const frameLoc: any = {
+      boundingBox: vi.fn(async (opts?: { timeout?: number }) => {
+        await delay(opts?.timeout ?? 30000);
+        return null;
+      }),
+      scrollIntoViewIfNeeded: vi.fn(async (opts?: { timeout?: number }) => {
+        await delay(opts?.timeout ?? 30000);
+        throw new Error("timeout");
+      }),
+      evaluate: vi.fn(async () => ({ hit: true })),
+      isChecked: vi.fn(async () => false),
+    };
+    frameLoc.first = vi.fn(() => frameLoc);
+
+    const origClickFn = vi.fn(async (_sel: string, opts?: any) => {
+      await delay(opts?.timeout ?? 30000);
+      throw new Error("timeout");
+    });
+
+    const childFrame: any = {
+      click: origClickFn,
+      dblclick: vi.fn(async () => {}),
+      hover: vi.fn(async () => {}),
+      type: vi.fn(async () => {}),
+      fill: vi.fn(async () => {}),
+      check: vi.fn(async () => {}),
+      uncheck: vi.fn(async () => {}),
+      selectOption: vi.fn(async () => {}),
+      press: vi.fn(async () => {}),
+      pressSequentially: vi.fn(async () => {}),
+      tap: vi.fn(async () => {}),
+      clear: vi.fn(async () => {}),
+      dragAndDrop: vi.fn(async () => {}),
+      locator: vi.fn(() => frameLoc),
+      childFrames: vi.fn(() => []),
+    };
+
+    const mainFrame = {
+      ...buildMockFrame(),
+      childFrames: vi.fn(() => [childFrame]),
+    };
+
+    const page = buildMockPage({ mainFrameReturn: mainFrame });
+    const cfg = resolveConfig("default", {
+      mouse_min_steps: 1,
+      mouse_max_steps: 1,
+      idle_between_actions: false,
+    });
+    const cursor = { x: 0, y: 0, initialized: true };
+    patchPage(page as any, cfg, cursor as any);
+
+    const start = Date.now();
+    try {
+      await (childFrame as any).click("#does-not-exist", { timeout: TIMEOUT_MS });
+    } catch {
+      // expected — element doesn't exist
+    }
+    const elapsed = Date.now() - start;
+
+    // With the bug, elapsed ≈ 3 * TIMEOUT_MS (scrollIntoView + boundingBox + origClick).
+    // Fixed: elapsed should be ≈ 1 * TIMEOUT_MS (shared deadline).
+    // Allow 1.8x as upper bound to account for test overhead but catch the 3x bug.
+    expect(elapsed).toBeLessThan(TIMEOUT_MS * 1.8);
+  });
+});
