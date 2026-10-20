@@ -73,3 +73,6 @@ captures
 .dolt/
 *.db
 .beads-credential-key
+*.har
+*.exe
+.vscode/tasks.json
